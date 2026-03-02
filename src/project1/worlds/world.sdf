@@ -1,40 +1,24 @@
-<?xml version="1.0" ?>
-<!--
-  world.sdf - Project 1 Environment for TurtleBot 4
-  ===================================================
-  Layout (user coordinate system, 1 unit = 5ft = 1.524m):
-
-    Overall space   : (0,0) to (3,4)  =>  4.572m x 6.096m
-    Room            : (0,1) to (2,4)  =>  3.048m x 4.572m  (10ft x 15ft)
-    Hall (L-shape)  :
-      Longer branch  (right vertical ) : x=[2,3], y=[0,4]  => 5ft wide, 20ft long
-      Shorter branch (bottom horiz.  ) : x=[0,3], y=[0,1]  => 15ft wide, 5ft tall
-
-    Room doorway    : east room wall (x=2), y=[2,3]  =>  5ft wide opening
-    Hall doorway    : REMOVED - east outer wall (x=3) is now fully solid
-
-  SDF coordinates: user(x,y) maps to world(x*1.524m, y*1.524m, z)
-  Wall properties: 0.15m thick, 2.5m tall, static
-
-  NOTE: TurtleBot 4 is NOT included here. Spawn it via your launch file using
-        the turtlebot4_ignition_bringup or spawn_entity.py node so that ROS 2
-        can locate the model correctly.
--->
-<sdf version="1.6">
+<?xml version="1.0"?>
+<sdf version="1.6" xmlns:xacro="http://www.ros.org/wiki/xacro" xmlns:experimental="http://sdformat.org/schemas/experimental">
+  <xacro:arg name="headless" default="true"/>
   <world name="project1_world">
 
     <physics name="1ms" type="ode">
       <max_step_size>0.003</max_step_size>
-      <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000.0</real_time_update_rate>
     </physics>
-    
+
     <plugin filename="gz-sim-physics-system"
         name="gz::sim::systems::Physics"/>
     <plugin filename="gz-sim-user-commands-system"
         name="gz::sim::systems::UserCommands"/>
-    <plugin filename="gz-sim-scene-broadcaster-system"
-        name="gz::sim::systems::SceneBroadcaster"/>
+
+    <xacro:unless value="$(arg headless)">
+      <plugin filename="gz-sim-scene-broadcaster-system"
+          name="gz::sim::systems::SceneBroadcaster"/>
+    </xacro:unless>
+
     <plugin filename="gz-sim-sensors-system"
         name="gz::sim::systems::Sensors">
       <render_engine>ogre2</render_engine>
@@ -42,9 +26,6 @@
     <plugin filename="gz-sim-imu-system"
         name="gz::sim::systems::Imu"/>
 
-    <!-- ===========================================================
-         LIGHTING  (inline directional light replacing model://sun)
-         =========================================================== -->
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -53,9 +34,6 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!-- ===========================================================
-         GROUND PLANE  (inline model replacing model://ground_plane)
-         =========================================================== -->
     <model name="ground_plane">
       <static>true</static>
       <link name="link">
@@ -91,11 +69,6 @@
       </link>
     </model>
 
-    <!-- ===========================================================
-         OUTER BOUNDARY WALLS  (enclosing full 4.572m x 6.096m area)
-         =========================================================== -->
-
-    <!-- South outer wall: y=0, x=[0,4.572], solid -->
     <model name="wall_south">
       <static>true</static>
       <pose>2.286 0.0 1.25 0 0 0</pose>
@@ -110,7 +83,6 @@
       </link>
     </model>
 
-    <!-- North outer wall: y=6.096, x=[0,4.572], solid -->
     <model name="wall_north">
       <static>true</static>
       <pose>2.286 6.096 1.25 0 0 0</pose>
@@ -125,7 +97,6 @@
       </link>
     </model>
 
-    <!-- West outer wall: x=0, y=[0,6.096], solid -->
     <model name="wall_west">
       <static>true</static>
       <pose>0.0 3.048 1.25 0 0 1.5708</pose>
@@ -140,8 +111,6 @@
       </link>
     </model>
 
-    <!-- East outer wall: x=4.572, y=[0,6.096], fully solid (no doorway)
-         Length=6.096m, center y=3.048 -->
     <model name="wall_east">
       <static>true</static>
       <pose>4.572 3.048 1.25 0 0 1.5708</pose>
@@ -156,15 +125,6 @@
       </link>
     </model>
 
-    <!-- ===========================================================
-         INTERIOR WALLS  (separating the room from the hallway)
-         Room: x=[0, 3.048], y=[1.524, 6.096]
-         West and north room walls coincide with outer walls.
-         =========================================================== -->
-
-    <!-- South room wall: y=1.524, x=[0, 3.048], solid
-         Separates bottom hall branch from room interior.
-         Length=3.048m, center x=1.524 -->
     <model name="wall_room_south">
       <static>true</static>
       <pose>1.524 1.524 1.25 0 0 0</pose>
@@ -179,9 +139,6 @@
       </link>
     </model>
 
-    <!-- East room wall: x=3.048, y=[1.524, 6.096]
-         Room doorway: user coords (2,2)-(2,3) => world y=[3.048, 4.572], 5ft wide
-         South segment (y=[1.524, 3.048]): length=1.524m, center y=2.286 -->
     <model name="wall_room_east_south">
       <static>true</static>
       <pose>3.048 2.286 1.25 0 0 1.5708</pose>
@@ -196,8 +153,6 @@
       </link>
     </model>
 
-    <!-- East room wall north segment (y=[4.572, 6.096]):
-         length=1.524m, center y=5.334 -->
     <model name="wall_room_east_north">
       <static>true</static>
       <pose>3.048 5.334 1.25 0 0 1.5708</pose>
