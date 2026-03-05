@@ -27,8 +27,8 @@ def generate_launch_description():
                 'world': world,
                 'slam': slam,
                 'headless': headless,
-                'x_pose': '1.0',
-                'y_pose': '2.0',
+                'x_pose': '2.0',
+                'y_pose': '4.0',
                 'z_pose': '0.0',
             }.items()
         ),

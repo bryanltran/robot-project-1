@@ -3,6 +3,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
+
 import math
 import random
 
@@ -12,7 +13,8 @@ TURN_SPEED     = 0.6
 TURN_DIST      = 0.3048
 FRONT_ARC      = math.radians(30)
 ASYM_THRESHOLD = 0.05
-COLLISION_DIST = 0.45
+HALT_DIST      = 0.20   # priority 1 — lidar-based halt (practically touching)
+COLLISION_DIST = 0.45   # priority 3 — escape trigger
 LOG_THROTTLE   = 1.0
 
 
@@ -32,10 +34,14 @@ class Project1Controller(Node):
         super().__init__('project1_controller')
 
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
-        self.create_subscription(Twist,     '/cmd_vel_key', self.key_callback,  10)
-        self.create_subscription(Odometry,  '/odom',        self.odom_callback, 10)
-        self.create_subscription(LaserScan, '/scan',        self.scan_callback, 10)
+        self.create_subscription(Twist,                '/cmd_vel_key',      self.key_callback,     10)
+        self.create_subscription(Odometry,             '/odom',             self.odom_callback,    10)
+        self.create_subscription(LaserScan,            '/scan',             self.scan_callback,    10)
+        
         self.create_timer(0.05, self.tick)
+
+        # priority 1 — lidar halt
+        self.halt_detected = False
 
         # keyboard
         self.last_key_cmd  = Twist()
@@ -48,7 +54,7 @@ class Project1Controller(Node):
         self.current_yaw     = 0.0
         self.dist_since_turn = 0.0
 
-        # priority 3 — escape 
+        # priority 3 — escape
         self.escape_active     = False
         self.escape_phase      = None  # 'turn' | 'drive'
         self.escape_target_yaw = 0.0
@@ -69,6 +75,7 @@ class Project1Controller(Node):
         self.collision_detected = False
 
         self.get_logger().info('Controller started.')
+
 
     def key_callback(self, msg: Twist):
         self.last_key_cmd  = msg
@@ -93,6 +100,7 @@ class Project1Controller(Node):
         left_min  = float('inf')
         right_min = float('inf')
         collision = False
+        halt      = False
 
         for i, r in enumerate(msg.ranges):
             if math.isinf(r) or math.isnan(r) or r <= 0.0:
@@ -100,6 +108,8 @@ class Project1Controller(Node):
             if r < msg.range_min or r > msg.range_max:
                 continue
 
+            if r < HALT_DIST:
+                halt = True
             if r < COLLISION_DIST:
                 collision = True
 
@@ -112,6 +122,7 @@ class Project1Controller(Node):
                 else:
                     right_min = min(right_min, r)
 
+        self.halt_detected      = halt
         self.collision_detected = collision
         self.front_left_min     = left_min
         self.front_right_min    = right_min
@@ -122,6 +133,12 @@ class Project1Controller(Node):
 
         if self.key_active and (now - self.key_last_time) > KEY_TIMEOUT:
             self.key_active = False
+
+        # priority 1: lidar halt — something is practically touching
+        if self.halt_detected:
+            self.cmd_pub.publish(Twist())
+            self.get_logger().info('P1 Halt: obstacle within halt range.', throttle_duration_sec=1.0)
+            return
 
         # priority 2: keyboard
         if self.key_active:
