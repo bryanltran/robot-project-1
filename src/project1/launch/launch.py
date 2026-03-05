@@ -30,6 +30,7 @@ def generate_launch_description():
                 'x_pose': '2.0',
                 'y_pose': '4.0',
                 'z_pose': '0.0',
+                'yaw': '1.6',
             }.items()
         ),
     ])
